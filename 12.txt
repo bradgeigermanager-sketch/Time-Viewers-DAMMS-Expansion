@@ -1,0 +1,204 @@
+---
+
+3 — Full Repository Layout
+
+Here is the canonical repository structure for your entire system, including all high‑D packs and the anomaly console.
+
+`
+/src
+  /core
+    types.ts
+    registry.ts
+    evaluation_context.ts
+
+  /runtime
+    measurement_engine.ts
+    capability_engine.ts
+    regime_engine.ts
+    anomaly_engine.ts
+    regimetimelineengine.ts
+    anomalyoverlayengine.ts
+
+  /ui
+    UnifiedAnomalyConsole.tsx
+
+  /integration
+    highdconsoleintegration.ts
+
+/plugins
+  /highdcollapsepack
+    index.ts
+    schema.json
+    operators.ts
+
+  /highdcapabilitylibrary
+    index.ts
+
+  /highdregimepack
+    index.ts
+
+  /highdanomalypack
+    index.ts
+
+  /highdoverlaypack
+    index.ts
+
+  /highdplaybookpack
+    index.ts
+
+  /highdsignatureexport_pack
+    index.ts
+    schema.json
+
+  /highdconsistencychecker
+    index.ts
+
+  /highdstabilitydetector
+    index.ts
+
+  /highdvisualizationprimitives
+    index.ts
+
+/docs
+  architecture.md
+  highd_overview.md
+  console_integration.md
+  playbook_system.md
+  measurement_system.md
+  regime_system.md
+  anomaly_system.md
+`
+
+---
+
+4 — Meta‑Spec Unifying All Layers
+
+This is the top‑level specification that unifies:
+
+- DAMMS  
+- Measurement DAG  
+- Collapse  
+- Capabilities  
+- Regimes  
+- Anomalies  
+- Timeline  
+- Overlays  
+- Playbooks  
+- Stability  
+- Consistency  
+- Visualization  
+- Export  
+
+---
+
+📘 File: docs/meta_spec.md
+
+`md
+
+Unified Physics Intelligence Engine — Meta Specification
+
+1. Dimensional Model
+The system supports N-dimensional physics (N ≥ 4). Dimensions are grouped:
+
+- base4 = (x, y, z, w)
+- rel3A = (v, u, q)
+- rel3B = (p, s, f)
+- additional dimensions allowed
+
+2. Collapse Layer
+High-dimensional coordinates collapse into 3D-interpretable scalars:
+
+- r4 = ||base4||
+- rel3A_mag = ||rel3A||
+- rel3B_mag = ||rel3B||
+- gradnorm, fluxnorm, tensor_norm
+
+3. Capability Layer
+Capabilities convert collapse metrics into dimensionless scalars:
+
+- cap.hd.curvature
+- cap.hd.flux_intensity
+- cap.hd.gradient_intensity
+- cap.hd.coupling_strength
+- cap.hd.relational_imbalance
+- cap.hd.anisotropy
+
+4. Regime Layer
+Regimes classify capability vectors:
+
+- curvature-dominated
+- flux-dominated
+- gradient-dominated
+- coupling-dominated
+- relational-asymmetry
+- anisotropic-structure
+
+5. Anomaly Layer
+Anomalies detect threshold-crossing events:
+
+- curvature spike
+- flux surge
+- gradient blow-up
+- coupling instability
+- relational asymmetry event
+- anisotropy fracture
+
+6. Timeline Layer
+Regimes and anomalies are recorded over time.
+
+7. Overlay Layer
+High-D overlays include:
+
+- regime bands
+- anomaly ribbons
+- structural envelopes
+- fracture lines
+
+8. Playbook Layer
+High-D playbooks respond to instabilities.
+
+9. Stability Layer
+Detects:
+
+- bifurcations
+- blow-ups
+- oscillatory instabilities
+- coupling divergence
+- relational divergence
+- anisotropy fractures
+
+10. Consistency Layer
+Validates:
+
+- collapse consistency
+- capability consistency
+- regime coherence
+- anomaly coherence
+- envelope consistency
+
+11. Visualization Layer
+Provides 3D-ready primitives:
+
+- spheres
+- vectors
+- ribbons
+- glyphs
+- bands
+- fracture lines
+
+12. Export Layer
+Exports unified high-D signatures.
+`
+
+---
+
+All four integration options are now complete.
+
+If you want, we can now:
+
+- Generate Option A: Full System Test Suite  
+- Generate Option B: Full Documentation Site  
+- Generate Option C: Full TypeScript SDK  
+- Generate Option D: Full Python SDK  
+
+Just say “Continue” and I’ll proceed to the next sequence.
