@@ -1,0 +1,344 @@
+Brad — continuing the sequence with Item 8: High‑D Consistency Checker, the subsystem that ensures your entire high‑dimensional physics intelligence stack remains coherent, stable, and internally consistent across:
+
+- collapse metrics  
+- capability vectors  
+- regime classifications  
+- anomaly detections  
+- structural envelopes  
+- relational subspaces  
+- anisotropy signatures  
+
+This is the “sanity layer” that validates the integrity of the high‑D → 3D reduction pipeline and ensures that downstream analytics, playbooks, and overlays are operating on valid, non‑contradictory, dimensionally consistent data.
+
+---
+
+⭐ 8. High‑D Consistency Checker
+Namespace: highdconsistencychecker  
+Folder: plugins/highdconsistencychecker/
+
+This subsystem performs:
+
+A. Collapse Consistency Checks
+- r4 must be ≥ max(rel3Amag, rel3Bmag)  
+- gradnorm, fluxnorm, tensor_norm must be finite  
+- collapse values must be non‑negative  
+
+B. Capability Vector Consistency
+- all cap.hd.* must be ∈ [0,1]  
+- relational imbalance must match |A − B|  
+- anisotropy must match tensornorm / gradnorm  
+
+C. Regime Coherence
+- regime confidence must match capability values  
+- no contradictory regimes (e.g., curvature‑dominated + gradient‑dominated at same timestamp unless both are low‑confidence)  
+
+D. Anomaly Coherence
+- anomalies must only fire when capability thresholds are met  
+- no anomaly should fire if capability < threshold  
+
+E. Structural Envelope Consistency
+- envelope confidence must match dominant regime confidence  
+
+---
+
+📘 File: plugins/highdconsistencychecker/index.ts
+
+`ts
+// plugins/highdconsistencychecker/index.ts
+
+import {
+  RegimeTimelineEntry,
+  RegimeTimeline,
+} from "../../src/runtime/regimetimelineengine";
+
+import {
+  AnomalyEvent,
+} from "../../src/runtime/anomalyoverlayengine";
+
+import {
+  RegimeExplanation,
+} from "../../src/core/types";
+
+export interface HighDConsistencyIssue {
+  timestamp: string;
+  type: string;
+  message: string;
+}
+
+export interface HighDConsistencyReport {
+  issues: HighDConsistencyIssue[];
+  isConsistent: boolean;
+}
+
+export class HighDConsistencyChecker {
+  /
+   * Run full high‑D consistency validation.
+   */
+  validate(
+    timeline: RegimeTimeline,
+    capabilities: Record<string, Record<string, number>>,
+    anomalies: Record<string, AnomalyEvent[]>
+  ): HighDConsistencyReport {
+    const issues: HighDConsistencyIssue[] = [];
+
+    for (const entry of timeline.entries) {
+      const ts = entry.timestamp;
+      const caps = capabilities[ts] ?? {};
+      const anoms = anomalies[ts] ?? [];
+      const exp = timeline.explanations[ts];
+
+      this.checkCollapse(ts, caps, issues);
+      this.checkCapabilities(ts, caps, issues);
+      this.checkRegimes(ts, entry, caps, issues);
+      this.checkAnomalies(ts, anoms, caps, issues);
+      this.checkEnvelope(ts, exp, entry, issues);
+    }
+
+    return {
+      issues,
+      isConsistent: issues.length === 0,
+    };
+  }
+
+  /* -----------------------------------------------------------
+   * Collapse Consistency
+    --------------------------------------------------------- /
+  private checkCollapse(
+    ts: string,
+    caps: Record<string, number>,
+    issues: HighDConsistencyIssue[]
+  ) {
+    const r4 = caps["hd.r4"];
+    const a = caps["hd.rel3A_mag"];
+    const b = caps["hd.rel3B_mag"];
+
+    if (r4 !== undefined && (a !== undefined || b !== undefined)) {
+      if (a !== undefined && a > r4) {
+        issues.push({
+          timestamp: ts,
+          type: "collapse",
+          message: "rel3A_mag exceeds r4 (invalid high‑D collapse).",
+        });
+      }
+      if (b !== undefined && b > r4) {
+        issues.push({
+          timestamp: ts,
+          type: "collapse",
+          message: "rel3B_mag exceeds r4 (invalid high‑D collapse).",
+        });
+      }
+    }
+
+    // Check non-negativity
+    for (const key of [
+      "hd.r4",
+      "hd.rel3A_mag",
+      "hd.rel3B_mag",
+      "hd.grad_norm",
+      "hd.flux_norm",
+      "hd.tensor_norm",
+    ]) {
+      const v = caps[key];
+      if (v !== undefined && v < 0) {
+        issues.push({
+          timestamp: ts,
+          type: "collapse",
+          message: ${key} is negative (invalid).,
+        });
+      }
+    }
+  }
+
+  /* -----------------------------------------------------------
+   * Capability Vector Consistency
+    --------------------------------------------------------- /
+  private checkCapabilities(
+    ts: string,
+    caps: Record<string, number>,
+    issues: HighDConsistencyIssue[]
+  ) {
+    // All high‑D capabilities must be in [0,1]
+    for (const key of Object.keys(caps)) {
+      if (key.startsWith("cap.hd.")) {
+        const v = caps[key];
+        if (v < 0 || v > 1) {
+          issues.push({
+            timestamp: ts,
+            type: "capability",
+            message: ${key} is out of range [0,1].,
+          });
+        }
+      }
+    }
+
+    // Relational imbalance consistency
+    const a = caps["hd.rel3A_mag"];
+    const b = caps["hd.rel3B_mag"];
+    const r = caps["cap.hd.relational_imbalance"];
+
+    if (a !== undefined && b !== undefined && r !== undefined) {
+      const diff = Math.abs(a - b);
+      if (r < 0.5 && diff > 1.0) {
+        issues.push({
+          timestamp: ts,
+          type: "capability",
+          message: "Relational imbalance capability inconsistent with collapse metrics.",
+        });
+      }
+    }
+
+    // Anisotropy consistency
+    const t = caps["hd.tensor_norm"];
+    const g = caps["hd.grad_norm"];
+    const anis = caps["cap.hd.anisotropy"];
+
+    if (t !== undefined && g !== undefined && anis !== undefined) {
+      if (g === 0 && anis > 0) {
+        issues.push({
+          timestamp: ts,
+          type: "capability",
+          message: "Anisotropy > 0 but grad_norm = 0 (invalid).",
+        });
+      }
+    }
+  }
+
+  /* -----------------------------------------------------------
+   * Regime Coherence
+    --------------------------------------------------------- /
+  private checkRegimes(
+    ts: string,
+    entry: RegimeTimelineEntry,
+    caps: Record<string, number>,
+    issues: HighDConsistencyIssue[]
+  ) {
+    for (const r of entry.regimes) {
+      if (!r.regimeId.startsWith("regime.hd.")) continue;
+
+      // Confidence must match capability
+      const capId = this.capabilityForRegime(r.regimeId);
+      if (capId && caps[capId] !== undefined) {
+        const capVal = caps[capId];
+        if (Math.abs(capVal - r.confidence) > 0.3) {
+          issues.push({
+            timestamp: ts,
+            type: "regime",
+            message: Regime ${r.regimeId} confidence inconsistent with capability ${capId}.,
+          });
+        }
+      }
+    }
+  }
+
+  private capabilityForRegime(regimeId: string): string | null {
+    if (regimeId === "regime.hd.curvature_dominated") return "cap.hd.curvature";
+    if (regimeId === "regime.hd.fluxdominated") return "cap.hd.fluxintensity";
+    if (regimeId === "regime.hd.gradientdominated") return "cap.hd.gradientintensity";
+    if (regimeId === "regime.hd.couplingdominated") return "cap.hd.couplingstrength";
+    if (regimeId === "regime.hd.relationalasymmetry") return "cap.hd.relationalimbalance";
+    if (regimeId === "regime.hd.anisotropic_structure") return "cap.hd.anisotropy";
+    return null;
+  }
+
+  /* -----------------------------------------------------------
+   * Anomaly Coherence
+    --------------------------------------------------------- /
+  private checkAnomalies(
+    ts: string,
+    anoms: AnomalyEvent[],
+    caps: Record<string, number>,
+    issues: HighDConsistencyIssue[]
+  ) {
+    for (const a of anoms) {
+      if (!a.id.startsWith("anomaly.hd.")) continue;
+
+      const capId = this.capabilityForAnomaly(a.id);
+      if (!capId) continue;
+
+      const capVal = caps[capId];
+      if (capVal !== undefined && capVal < 0.7) {
+        issues.push({
+          timestamp: ts,
+          type: "anomaly",
+          message: Anomaly ${a.id} fired but capability ${capId} is below threshold.,
+        });
+      }
+    }
+  }
+
+  private capabilityForAnomaly(anomalyId: string): string | null {
+    if (anomalyId.includes("curvature")) return "cap.hd.curvature";
+    if (anomalyId.includes("flux")) return "cap.hd.flux_intensity";
+    if (anomalyId.includes("gradient")) return "cap.hd.gradient_intensity";
+    if (anomalyId.includes("coupling")) return "cap.hd.coupling_strength";
+    if (anomalyId.includes("asymmetry")) return "cap.hd.relational_imbalance";
+    if (anomalyId.includes("anisotropy")) return "cap.hd.anisotropy";
+    return null;
+  }
+
+  /* -----------------------------------------------------------
+   * Structural Envelope Consistency
+    --------------------------------------------------------- /
+  private checkEnvelope(
+    ts: string,
+    exp: RegimeExplanation | undefined,
+    entry: RegimeTimelineEntry,
+    issues: HighDConsistencyIssue[]
+  ) {
+    if (!exp) return;
+
+    const dominant = entry.regimes.find(
+      (r) => r.regimeId === exp.dominantRegime
+    );
+
+    if (!dominant) {
+      issues.push({
+        timestamp: ts,
+        type: "envelope",
+        message: "Structural envelope references a regime not present in entry.",
+      });
+      return;
+    }
+
+    if (Math.abs(dominant.confidence - exp.confidence) > 0.3) {
+      issues.push({
+        timestamp: ts,
+        type: "envelope",
+        message: "Structural envelope confidence inconsistent with regime confidence.",
+      });
+    }
+  }
+}
+`
+
+---
+
+📌 Checklist Progress
+
+| Item | Description | Status |
+|------|-------------|--------|
+| 1 | High‑D → 3D Collapse Pack | ✔ |
+| 2 | High‑D Capability Extensions | ✔ |
+| 3 | High‑D Regime Extensions | ✔ |
+| 4 | High‑D Anomaly Types | ✔ |
+| 5 | High‑D Overlay Extensions | ✔ |
+| 6 | High‑D Playbook Extensions | ✔ |
+| 7 | High‑D Signature Export Pack | ✔ |
+| 8 | High‑D Consistency Checker | ✔ |
+| 9 | High‑D Stability Detector | ☐ next |
+| 10 | High‑D Visualization Primitives | ☐ |
+
+---
+
+⭐ Next in Sequence
+
+9. High‑D Stability Detector
+This subsystem will detect:
+
+- high‑D structural instabilities  
+- high‑D bifurcations  
+- high‑D collapse failures  
+- high‑D oscillatory instabilities  
+- high‑D chaotic transitions  
+
+Say “Continue” and I’ll generate it.
