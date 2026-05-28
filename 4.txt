@@ -1,0 +1,178 @@
+High‑D Regime Extensions
+
+This pack turns the new high‑D capabilities into qualitative regimes.
+
+- Namespace: highdregimepack  
+- Folder: plugins/highdregimepack/  
+
+It assumes the High‑D Capability Library is active and provides:
+
+- cap.hd.curvature  
+- cap.hd.flux_intensity  
+- cap.hd.gradient_intensity  
+- cap.hd.coupling_strength  
+- cap.hd.relational_imbalance  
+- cap.hd.anisotropy  
+
+---
+
+File: plugins/highdregimepack/index.ts
+
+`ts
+// plugins/highdregimepack/index.ts
+
+import {
+  Regime,
+  RegimePlugin,
+  RegimeClassification,
+} from "../../src/core/types";
+
+/
+ * Helper to read a capability.
+ */
+function c(caps: Record<string, unknown>, id: string): number {
+  const v = caps[id];
+  if (typeof v !== "number") {
+    throw new Error(Expected capability "${id}");
+  }
+  return v;
+}
+
+/
+ * Clamp to [0, 1].
+ */
+function clamp01(x: number): number {
+  return Math.max(0, Math.min(1, x));
+}
+
+/
+ * High‑D regimes:
+ * - curvature-dominated
+ * - flux-dominated
+ * - gradient-dominated
+ * - coupling-dominated
+ * - relational-asymmetry
+ * - anisotropic-structure
+ */
+
+const highDRegimes: Regime[] = [
+  // High‑D Curvature-Dominated
+  {
+    id: "regime.hd.curvature_dominated",
+    label: "High-D Curvature-Dominated",
+    description: "System dominated by high-dimensional curvature structure.",
+    capabilityDependencies: ["cap.hd.curvature"],
+    classify: (caps): RegimeClassification => {
+      const curv = c(caps, "cap.hd.curvature");
+      return {
+        regimeId: "regime.hd.curvature_dominated",
+        confidence: clamp01(curv),
+        label: "High-D Curvature-Dominated",
+        description: "High-dimensional curvature strongly shapes the system.",
+      };
+    },
+  },
+
+  // High‑D Flux-Dominated
+  {
+    id: "regime.hd.flux_dominated",
+    label: "High-D Flux-Dominated",
+    description: "System dominated by high-dimensional flux transport.",
+    capabilityDependencies: ["cap.hd.flux_intensity"],
+    classify: (caps): RegimeClassification => {
+      const f = c(caps, "cap.hd.flux_intensity");
+      return {
+        regimeId: "regime.hd.flux_dominated",
+        confidence: clamp01(f),
+        label: "High-D Flux-Dominated",
+        description: "High-dimensional flux dominates transport behavior.",
+      };
+    },
+  },
+
+  // High‑D Gradient-Dominated
+  {
+    id: "regime.hd.gradient_dominated",
+    label: "High-D Gradient-Dominated",
+    description: "System dominated by high-dimensional gradients.",
+    capabilityDependencies: ["cap.hd.gradient_intensity"],
+    classify: (caps): RegimeClassification => {
+      const g = c(caps, "cap.hd.gradient_intensity");
+      return {
+        regimeId: "regime.hd.gradient_dominated",
+        confidence: clamp01(g),
+        label: "High-D Gradient-Dominated",
+        description: "High-dimensional gradients dominate structural variation.",
+      };
+    },
+  },
+
+  // High‑D Coupling-Dominated
+  {
+    id: "regime.hd.coupling_dominated",
+    label: "High-D Coupling-Dominated",
+    description: "System dominated by high-dimensional coupling interactions.",
+    capabilityDependencies: ["cap.hd.coupling_strength"],
+    classify: (caps): RegimeClassification => {
+      const s = c(caps, "cap.hd.coupling_strength");
+      return {
+        regimeId: "regime.hd.coupling_dominated",
+        confidence: clamp01(s),
+        label: "High-D Coupling-Dominated",
+        description: "High-dimensional coupling strongly influences dynamics.",
+      };
+    },
+  },
+
+  // High‑D Relational-Asymmetry
+  {
+    id: "regime.hd.relational_asymmetry",
+    label: "High-D Relational-Asymmetry",
+    description: "System exhibits strong imbalance between relational subspaces.",
+    capabilityDependencies: ["cap.hd.relational_imbalance"],
+    classify: (caps): RegimeClassification => {
+      const r = c(caps, "cap.hd.relational_imbalance");
+      return {
+        regimeId: "regime.hd.relational_asymmetry",
+        confidence: clamp01(r),
+        label: "High-D Relational-Asymmetry",
+        description: "Relational high-dimensional subspaces are strongly imbalanced.",
+      };
+    },
+  },
+
+  // High‑D Anisotropic-Structure
+  {
+    id: "regime.hd.anisotropic_structure",
+    label: "High-D Anisotropic Structure",
+    description: "System exhibits strong high-dimensional anisotropy.",
+    capabilityDependencies: ["cap.hd.anisotropy"],
+    classify: (caps): RegimeClassification => {
+      const a = c(caps, "cap.hd.anisotropy");
+      return {
+        regimeId: "regime.hd.anisotropic_structure",
+        confidence: clamp01(a),
+        label: "High-D Anisotropic Structure",
+        description: "High-dimensional structure is strongly anisotropic.",
+      };
+    },
+  },
+];
+
+export const HighDRegimePlugin: RegimePlugin = {
+  namespace: "highdregimepack",
+  regimes: highDRegimes,
+};
+`
+
+---
+
+Checklist update
+
+- 1. High‑D → 3D Collapse Pack ✔  
+- 2. High‑D Capability Extensions ✔  
+- 3. High‑D Regime Extensions ✔  
+- 4. High‑D Anomaly Types ☐ (next)  
+
+If you want to keep going in order, say:  
+“Produce High-D Anomaly Types”.
