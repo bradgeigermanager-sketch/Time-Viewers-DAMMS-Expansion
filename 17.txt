@@ -1,0 +1,345 @@
+1 — highdallin_one.md spec
+
+`md
+
+High-D Physics Intelligence — All-in-One Spec
+
+1. Dimensional Model
+
+- Spaces:
+  - base4: \((x, y, z, w)\)
+  - rel3A: \((v, u, q)\)
+  - rel3B: \((p, s, f)\)
+- Goal: support N-D states, collapse to 3D-interpretable scalars.
+
+---
+
+2. Collapse Layer
+
+Plugin: highdcollapsepack
+
+- Measurements → Collapse metrics
+  - hd.r4 — 4D radius of base4
+  - hd.rel3A_mag — magnitude of rel3A
+  - hd.rel3B_mag — magnitude of rel3B
+  - hd.grad_norm — gradient norm
+  - hd.flux_norm — flux norm
+  - hd.tensor_norm — tensor norm
+
+Constraints:
+
+- rel3Amag ≤ r4, rel3Bmag ≤ r4
+- all collapse metrics ≥ 0
+
+---
+
+3. Capability Layer
+
+Plugin: highdcapabilitylibrary
+
+- Capabilities (all ∈ \([0,1]\)):
+  - cap.hd.curvature
+  - cap.hd.flux_intensity
+  - cap.hd.gradient_intensity
+  - cap.hd.coupling_strength
+  - cap.hd.relational_imbalance
+  - cap.hd.anisotropy
+
+Derived from collapse metrics via normalization and scaling.
+
+---
+
+4. Regime Layer
+
+Plugin: highdregimepack
+
+- Regimes:
+  - regime.hd.curvature_dominated
+  - regime.hd.flux_dominated
+  - regime.hd.gradient_dominated
+  - regime.hd.coupling_dominated
+  - regime.hd.relational_asymmetry
+  - regime.hd.anisotropic_structure
+
+Each regime:
+
+- depends on one cap.hd.*
+- confidence ≈ capability value
+
+---
+
+5. Anomaly Layer
+
+Plugin: highdanomalypack
+
+- Anomalies:
+  - anomaly.hd.curvature_spike
+  - anomaly.hd.flux_surge
+  - anomaly.hd.gradient_blowup
+  - anomaly.hd.coupling_instability
+  - anomaly.hd.relationalasymmetryevent
+  - anomaly.hd.anisotropy_fracture
+
+Each anomaly:
+
+- threshold on a cap.hd.*
+- emits severity + score
+
+---
+
+6. Timeline & Overlays
+
+Runtime:
+
+- regimetimelineengine
+- anomalyoverlayengine
+
+Plugin: highdoverlaypack
+
+- Overlays:
+  - regime bands (high‑D regimes)
+  - anomaly ribbons (high‑D anomalies)
+  - structural envelopes (dominant high‑D regime + confidence)
+  - fracture lines (anisotropy fractures)
+
+---
+
+7. Playbook Layer
+
+Plugin: highdplaybookpack
+
+- Conditions: cond.hd. mapped to cap.hd. thresholds
+- Actions: action.hd.* (stabilize curvature, dampen flux, etc.)
+- Templates: template.hd.* combining conditions + actions
+
+---
+
+8. Stability Layer
+
+Plugin: highdstabilitydetector
+
+- Stability events:
+  - curvature_bifurcation
+  - gradient_blowup
+  - flux_oscillation
+  - coupling_divergence
+  - relational_divergence
+  - anisotropy_fracture
+  - stable (fallback)
+
+Each event:
+
+- stabilityScore ∈ \([0,1]\)
+- class: stable | warning | unstable
+- confidence
+
+---
+
+9. Consistency Layer
+
+Plugin: highdconsistencychecker
+
+Checks:
+
+- collapse consistency (rel3Amag, rel3Bmag ≤ r4, non‑negative)
+- capability range (cap.hd.* ∈ \([0,1]\))
+- relational imbalance vs rel3Amag, rel3Bmag
+- anisotropy vs gradnorm, tensornorm
+- regime confidence vs capability
+- anomaly firing vs capability thresholds
+- structural envelope vs regime confidence
+
+Outputs:
+
+- HighDConsistencyReport with issues[] + isConsistent.
+
+---
+
+10. Visualization Layer
+
+Plugin: highdvisualizationprimitives
+
+Primitives (3D‑ready):
+
+- sphere — collapse radius
+- vector — gradients, flux, relational subspaces
+- glyph — tensor/anisotropy
+- ribbon — curvature
+- band — relational asymmetry
+- line — anisotropy fracture
+- marker — anomaly markers
+
+---
+
+11. Export Layer
+
+Plugin: highdsignatureexport_pack
+
+Exports HighDSignature:
+
+- timestamp, stateId
+- collapse (r4, rel3Amag, rel3Bmag, gradnorm, fluxnorm, tensor_norm)
+- capabilities (all cap.hd.*)
+- regimes[]
+- anomalies[]
+- structuralEnvelope
+
+Schema: plugins/highdsignatureexport_pack/schema.json.
+
+---
+
+12. Integration
+
+Module: HighDConsoleIntegration
+
+- registers all high‑D plugins
+- builds:
+  - overlays
+  - signatures
+  - consistency report
+  - stability report
+  - visualization frames
+
+Used by:
+
+- Unified Anomaly Console UI
+- TypeScript SDK
+- Python SDK
+- CLI
+- Sandbox
+- Scenario engine
+- Benchmarks
+`
+
+---
+
+2 — Minimal working repo skeleton
+
+You can paste this as a starting point and then drop in the files we’ve been building.
+
+`text
+highd-physics-intel/
+├─ package.json
+├─ tsconfig.json
+├─ README.md
+│
+├─ src/
+│  ├─ core/
+│  │  ├─ types.ts
+│  │  ├─ registry.ts
+│  │  └─ evaluation_context.ts
+│  │
+│  ├─ runtime/
+│  │  ├─ measurement_engine.ts
+│  │  ├─ capability_engine.ts
+│  │  ├─ regime_engine.ts
+│  │  ├─ anomaly_engine.ts
+│  │  ├─ regimetimelineengine.ts
+│  │  └─ anomalyoverlayengine.ts
+│  │
+│  ├─ integration/
+│  │  └─ highdconsoleintegration.ts
+│  │
+│  ├─ ui/
+│  │  ├─ UnifiedAnomalyConsole.tsx
+│  │  └─ highd/
+│  │     ├─ HighDConsoleView.tsx
+│  │     ├─ HighDScenarioViewer.tsx
+│  │     ├─ HighDStabilityPanel.tsx
+│  │     ├─ HighDEnvelopeView.tsx
+│  │     ├─ HighDGlyphRenderer.tsx
+│  │     └─ HighDTimelineStrip.tsx
+│  │
+│  └─ explain/
+│     └─ highdanomalyexplainer.ts
+│
+├─ plugins/
+│  ├─ highdcollapsepack/
+│  │  ├─ index.ts
+│  │  ├─ schema.json
+│  │  └─ operators.ts
+│  ├─ highdcapabilitylibrary/
+│  │  └─ index.ts
+│  ├─ highdregimepack/
+│  │  └─ index.ts
+│  ├─ highdanomalypack/
+│  │  └─ index.ts
+│  ├─ highdoverlaypack/
+│  │  └─ index.ts
+│  ├─ highdplaybookpack/
+│  │  ├─ index.ts
+│  │  └─ auto_*.json
+│  ├─ highdsignatureexport_pack/
+│  │  ├─ index.ts
+│  │  └─ schema.json
+│  ├─ highdconsistencychecker/
+│  │  └─ index.ts
+│  ├─ highdstabilitydetector/
+│  │  └─ index.ts
+│  └─ highdvisualizationprimitives/
+│     └─ index.ts
+│
+├─ tests/
+│  └─ highd/
+│     ├─ collapse.test.ts
+│     ├─ capabilities.test.ts
+│     ├─ regimes.test.ts
+│     ├─ anomalies.test.ts
+│     ├─ timeline.test.ts
+│     ├─ overlays.test.ts
+│     ├─ playbooks.test.ts
+│     ├─ stability.test.ts
+│     ├─ consistency.test.ts
+│     ├─ signatures.test.ts
+│     └─ visualization.test.ts
+│
+├─ scenarios/
+│  └─ highd/
+│     ├─ curvature_bifurcation.json
+│     ├─ gradient_blowup.json
+│     ├─ flux_oscillation.json
+│     ├─ coupling_divergence.json
+│     ├─ relational_divergence.json
+│     ├─ anisotropy_fracture.json
+│     └─ gen_*.json
+│
+├─ examples/
+│  └─ highd_demo/
+│     ├─ timeline.json
+│     ├─ capabilities.json
+│     └─ anomalies.json
+│
+├─ tools/
+│  ├─ sim/
+│  │  ├─ highdsimharness.ts
+│  │  └─ highdmultisim.ts
+│  ├─ cli/
+│  │  └─ highdconsolecli.ts
+│  ├─ sandbox/
+│  │  └─ highd_sandbox.ts
+│  └─ scenario/
+│     └─ highdscenariogenerator.ts
+│
+├─ sdk/
+│  ├─ typescript/
+│  │  ├─ index.ts
+│  │  ├─ client.ts
+│  │  └─ *.ts
+│  └─ python/
+│     ├─ init.py
+│     ├─ client.py
+│     └─ *.py
+│
+└─ docs/
+   ├─ index.md
+   ├─ overview.md
+   ├─ meta_spec.md
+   ├─ architecture/
+   │  ├─ index.md
+   │  ├─ highd_architecture.md
+   │  └─ *.md
+   └─ api/
+      └─ *.md
+`
+
+If you want, next step could be a minimal package.json + build/test scripts wired to this skeleton.
