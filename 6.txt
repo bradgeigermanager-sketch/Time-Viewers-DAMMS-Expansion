@@ -1,0 +1,241 @@
+Brad — continuing in strict sequence.  
+Here is Item 5: High‑D Overlay Extensions, the layer that fuses:
+
+- High‑D regimes  
+- High‑D anomalies  
+- High‑D structural envelopes  
+- High‑D relational asymmetry bands  
+- High‑D anisotropy ribbons  
+
+into the Unified Anomaly Console timeline.
+
+This is the dimensional‑aware overlay engine that sits on top of:
+
+- the standard anomaly overlay engine  
+- the high‑D regime pack  
+- the high‑D anomaly pack  
+
+and produces visualizable, queryable, and composable overlay structures.
+
+---
+
+⭐ 5. High‑D Overlay Extensions
+Namespace: highdoverlaypack  
+Folder: plugins/highdoverlaypack/
+
+This pack extends the existing overlay engine with:
+
+New overlay constructs
+- High‑D Regime Bands  
+  (colored bands for curvature‑dominated, flux‑dominated, etc.)
+
+- High‑D Instability Ribbons  
+  (thin overlays marking gradient blow‑ups, coupling instabilities)
+
+- High‑D Relational Asymmetry Bands  
+  (wide overlays showing divergence between relational subspaces)
+
+- High‑D Anisotropy Fracture Lines  
+  (sharp overlays marking anisotropy spikes)
+
+- High‑D Structural Envelopes  
+  (confidence envelopes around high‑D structural metrics)
+
+These are all computed from:
+
+- cap.hd.*  
+- regime.hd.*  
+- anomaly.hd.*  
+
+and merged into the timeline.
+
+---
+
+📘 File: plugins/highdoverlaypack/index.ts
+
+`ts
+// plugins/highdoverlaypack/index.ts
+
+import {
+  RegimeTimeline,
+  RegimeTimelineEntry,
+} from "../../src/runtime/regimetimelineengine";
+
+import {
+  AnomalyEvent,
+} from "../../src/runtime/anomalyoverlayengine";
+
+export interface HighDOverlayBand {
+  type: "band" | "ribbon" | "fracture" | "envelope";
+  regimeId?: string;
+  anomalyId?: string;
+  label: string;
+  color: string;
+  start: string;
+  end: string;
+  confidence?: number;
+}
+
+export interface HighDOverlay {
+  bands: HighDOverlayBand[];
+  byTimestamp: Record<string, HighDOverlayBand[]>;
+}
+
+/
+ * High‑D Overlay Engine:
+ * - scans timeline entries
+ * - detects high‑D regimes and anomalies
+ * - produces overlay bands for visualization
+ */
+export class HighDOverlayEngine {
+  build(
+    timeline: RegimeTimeline,
+    anomalies: AnomalyEvent[]
+  ): HighDOverlay {
+    const bands: HighDOverlayBand[] = [];
+    const byTimestamp: Record<string, HighDOverlayBand[]> = {};
+
+    const entries = timeline.entries;
+
+    // Helper: push band
+    const pushBand = (b: HighDOverlayBand) => {
+      bands.push(b);
+      const ts = b.start;
+      if (!byTimestamp[ts]) byTimestamp[ts] = [];
+      byTimestamp[ts].push(b);
+    };
+
+    // 1. High‑D Regime Bands
+    for (const e of entries) {
+      for (const r of e.regimes) {
+        if (!r.regimeId.startsWith("regime.hd.")) continue;
+
+        pushBand({
+          type: "band",
+          regimeId: r.regimeId,
+          label: r.label,
+          color: this.colorForRegime(r.regimeId),
+          start: e.timestamp,
+          end: e.timestamp,
+          confidence: r.confidence,
+        });
+      }
+    }
+
+    // 2. High‑D Anomaly Ribbons
+    for (const a of anomalies) {
+      if (!a.id.startsWith("anomaly.hd.")) continue;
+
+      pushBand({
+        type: "ribbon",
+        anomalyId: a.id,
+        label: a.label,
+        color: this.colorForAnomaly(a.id),
+        start: a.timestamp,
+        end: a.timestamp,
+      });
+    }
+
+    // 3. High‑D Structural Envelopes (confidence envelopes)
+    for (const e of entries) {
+      const exp = timeline.explanations[e.timestamp];
+      if (!exp) continue;
+
+      if (exp.dominantRegime.startsWith("regime.hd.")) {
+        pushBand({
+          type: "envelope",
+          regimeId: exp.dominantRegime,
+          label: Structural Envelope: ${exp.dominantRegime},
+          color: "#c7d2fe",
+          start: e.timestamp,
+          end: e.timestamp,
+          confidence: exp.confidence,
+        });
+      }
+    }
+
+    // 4. High‑D Anisotropy Fracture Lines
+    for (const a of anomalies) {
+      if (a.id === "anomaly.hd.anisotropy_fracture") {
+        pushBand({
+          type: "fracture",
+          anomalyId: a.id,
+          label: "Anisotropy Fracture",
+          color: "#b91c1c",
+          start: a.timestamp,
+          end: a.timestamp,
+        });
+      }
+    }
+
+    return { bands, byTimestamp };
+  }
+
+  /
+   * Color mapping for high‑D regimes.
+   */
+  private colorForRegime(id: string): string {
+    switch (id) {
+      case "regime.hd.curvature_dominated":
+        return "#7c3aed";
+      case "regime.hd.flux_dominated":
+        return "#2563eb";
+      case "regime.hd.gradient_dominated":
+        return "#059669";
+      case "regime.hd.coupling_dominated":
+        return "#d97706";
+      case "regime.hd.relational_asymmetry":
+        return "#dc2626";
+      case "regime.hd.anisotropic_structure":
+        return "#9333ea";
+      default:
+        return "#6b7280";
+    }
+  }
+
+  /
+   * Color mapping for high‑D anomalies.
+   */
+  private colorForAnomaly(id: string): string {
+    if (id.includes("curvature")) return "#7c3aed";
+    if (id.includes("flux")) return "#2563eb";
+    if (id.includes("gradient")) return "#059669";
+    if (id.includes("coupling")) return "#d97706";
+    if (id.includes("asymmetry")) return "#dc2626";
+    if (id.includes("anisotropy")) return "#b91c1c";
+    return "#6b7280";
+  }
+}
+`
+
+---
+
+📌 Checklist Progress
+
+| Item | Description | Status |
+|------|-------------|--------|
+| 1 | High‑D → 3D Collapse Pack | ✔ |
+| 2 | High‑D Capability Extensions | ✔ |
+| 3 | High‑D Regime Extensions | ✔ |
+| 4 | High‑D Anomaly Types | ✔ |
+| 5 | High‑D Overlay Extensions | ✔ |
+| 6 | High‑D Playbook Extensions | ☐ next |
+| 7 | High‑D Signature Export Pack | ☐ |
+| 8 | High‑D Consistency Checker | ☐ |
+| 9 | High‑D Stability Detector | ☐ |
+| 10 | High‑D Visualization Primitives | ☐ |
+
+---
+
+⭐ Next in Sequence
+
+6. High‑D Playbook Extensions
+This will add:
+
+- high‑D triggers  
+- high‑D conditions  
+- high‑D playbook actions  
+- high‑D structural response templates  
+- high‑D instability mitigation flows  
+
+Say “Continue” and I’ll generate it.
