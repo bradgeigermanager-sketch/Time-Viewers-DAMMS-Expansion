@@ -1,0 +1,368 @@
+1 — High‑D Physics Sandbox
+
+Goal: interactive playground to inject measurements/caps and see regimes, anomalies, stability, vis.
+
+Folder: tools/sandbox/highd_sandbox.ts
+
+`ts
+// tools/sandbox/highd_sandbox.ts
+
+import readline from "readline";
+import { HighDConsoleIntegration } from "../../src/integration/highdconsoleintegration";
+
+const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+
+function ask(q: string): Promise<string> {
+  return new Promise((res) => rl.question(q, res));
+}
+
+async function main() {
+  const engine = new HighDConsoleIntegration();
+  engine.registerAll();
+
+  console.log("High-D Physics Sandbox");
+  console.log("Enter basic collapse metrics (0–1). Empty = 0.\n");
+
+  const r4 = parseFloat((await ask("r4: ")) || "0");
+  const relA = parseFloat((await ask("rel3A_mag: ")) || "0");
+  const relB = parseFloat((await ask("rel3B_mag: ")) || "0");
+  const grad = parseFloat((await ask("grad_norm: ")) || "0");
+  const flux = parseFloat((await ask("flux_norm: ")) || "0");
+  const tensor = parseFloat((await ask("tensor_norm: ")) || "0");
+
+  const caps: Record<string, Record<string, number>> = {
+    t0: {
+      "hd.r4": r4,
+      "hd.rel3A_mag": relA,
+      "hd.rel3B_mag": relB,
+      "hd.grad_norm": grad,
+      "hd.flux_norm": flux,
+      "hd.tensor_norm": tensor,
+    },
+  };
+
+  const timeline = {
+    entries: [{ timestamp: "t0", stateId: "s0", regimes: [], meta: {} }],
+    explanations: {},
+  };
+
+  const anoms: Record<string, any[]> = { t0: [] };
+
+  const result = engine.buildAll(timeline, caps, anoms);
+
+  console.log("\n=== High-D Regimes ===");
+  console.log(JSON.stringify(timeline.entries[0].regimes, null, 2));
+
+  console.log("\n=== High-D Stability ===");
+  console.log(JSON.stringify(result.stability.events, null, 2));
+
+  console.log("\n=== High-D Consistency Issues ===");
+  console.log(JSON.stringify(result.consistency.issues, null, 2));
+
+  console.log("\n=== High-D Visualization Primitives ===");
+  console.log(JSON.stringify(result.vis[0], null, 2));
+
+  rl.close();
+}
+
+main().catch((e) => {
+  console.error(e);
+  rl.close();
+});
+`
+
+---
+
+2 — High‑D Generative Scenario Engine
+
+Goal: synthesize new scenarios programmatically (randomized but structured).
+
+Folder: tools/scenario/highdscenariogenerator.ts
+
+`ts
+// tools/scenario/highdscenariogenerator.ts
+
+import fs from "fs";
+import path from "path";
+
+type ScenarioType =
+  | "curvature_bifurcation"
+  | "gradient_blowup"
+  | "flux_oscillation"
+  | "coupling_divergence"
+  | "relational_divergence"
+  | "anisotropy_fracture";
+
+function rand(min: number, max: number) {
+  return min + Math.random() * (max - min);
+}
+
+function genCapsForType(t: ScenarioType) {
+  switch (t) {
+    case "curvature_bifurcation":
+      return {
+        "hd.r4": rand(0.4, 0.7),
+        "hd.tensor_norm": rand(0.8, 1.0),
+        "cap.hd.curvature": rand(0.85, 1.0),
+      };
+    case "gradient_blowup":
+      return {
+        "hd.r4": rand(0.4, 0.7),
+        "hd.grad_norm": rand(0.9, 1.0),
+        "cap.hd.gradient_intensity": rand(0.9, 1.0),
+      };
+    case "flux_oscillation":
+      return {
+        "hd.r4": rand(0.4, 0.7),
+        "hd.grad_norm": rand(0.6, 0.9),
+        "hd.flux_norm": rand(0.8, 1.0),
+        "cap.hd.flux_intensity": rand(0.8, 1.0),
+      };
+    case "coupling_divergence":
+      return {
+        "hd.r4": rand(0.4, 0.7),
+        "hd.tensor_norm": rand(0.5, 1.0),
+        "cap.hd.coupling_strength": rand(0.75, 1.0),
+      };
+    case "relational_divergence":
+      return {
+        "hd.r4": rand(0.4, 0.7),
+        "hd.rel3A_mag": rand(0.7, 1.0),
+        "hd.rel3B_mag": rand(0.0, 0.3),
+        "cap.hd.relational_imbalance": rand(0.7, 1.0),
+      };
+    case "anisotropy_fracture":
+      return {
+        "hd.r4": rand(0.4, 0.7),
+        "hd.grad_norm": rand(0.3, 0.7),
+        "hd.tensor_norm": rand(0.8, 1.0),
+        "cap.hd.anisotropy": rand(0.88, 1.0),
+      };
+  }
+}
+
+function generateScenario(name: string, type: ScenarioType, steps = 3) {
+  const timeline: string[] = [];
+  const capabilities: Record<string, Record<string, number>> = {};
+
+  for (let i = 0; i < steps; i++) {
+    const ts = t${i};
+    timeline.push(ts);
+
+    if (i === 1) {
+      capabilities[ts] = genCapsForType(type);
+    } else {
+      capabilities[ts] = {
+        "hd.r4": rand(0.2, 0.5),
+        "hd.tensor_norm": rand(0.1, 0.4),
+        "hd.grad_norm": rand(0.1, 0.4),
+        "hd.flux_norm": rand(0.1, 0.4),
+      };
+    }
+  }
+
+  const scenario = {
+    name,
+    description: Generated scenario of type ${type},
+    timeline,
+    capabilities,
+  };
+
+  const out = path.resolve(dirname, ../../scenarios/highd/${name}.json);
+  fs.writeFileSync(out, JSON.stringify(scenario, null, 2));
+  console.log("Wrote", out);
+}
+
+function main() {
+  generateScenario("gencurvaturebifurcation", "curvature_bifurcation");
+  generateScenario("gengradientblowup", "gradient_blowup");
+  generateScenario("genfluxoscillation", "flux_oscillation");
+  generateScenario("gencouplingdivergence", "coupling_divergence");
+  generateScenario("genrelationaldivergence", "relational_divergence");
+  generateScenario("genanisotropyfracture", "anisotropy_fracture");
+}
+
+main();
+`
+
+---
+
+3 — High‑D Auto‑Playbook Synthesizer
+
+Goal: given anomaly/stability patterns, synthesize playbook templates automatically.
+
+Folder: tools/playbooks/highdautosynth.ts
+
+`ts
+// tools/playbooks/highdautosynth.ts
+
+import fs from "fs";
+import path from "path";
+
+interface SynthInput {
+  anomalies: string[];
+  instabilities: string[];
+}
+
+interface SynthPlaybookTemplate {
+  id: string;
+  label: string;
+  description: string;
+  conditions: string[];
+  actions: string[];
+}
+
+function mapAnomalyToCondition(a: string): string | null {
+  if (a.includes("curvature")) return "cond.hd.curvature_spike";
+  if (a.includes("gradient")) return "cond.hd.gradient_blowup";
+  if (a.includes("flux")) return "cond.hd.flux_surge";
+  if (a.includes("coupling")) return "cond.hd.coupling_instability";
+  if (a.includes("asymmetry")) return "cond.hd.relational_asymmetry";
+  if (a.includes("anisotropy")) return "cond.hd.anisotropy_fracture";
+  return null;
+}
+
+function mapInstabilityToAction(t: string): string[] {
+  if (t === "curvaturebifurcation") return ["action.hd.stabilizecurvature"];
+  if (t === "gradientblowup") return ["action.hd.smoothgradients"];
+  if (t === "fluxoscillation") return ["action.hd.dampenflux"];
+  if (t === "couplingdivergence") return ["action.hd.decoupletensors"];
+  if (t === "relationaldivergence") return ["action.hd.rebalancerelational"];
+  if (t === "anisotropyfracture") return ["action.hd.reduceanisotropy"];
+  return [];
+}
+
+function synthesizePlaybook(name: string, input: SynthInput): SynthPlaybookTemplate {
+  const conditions = Array.from(
+    new Set(
+      input.anomalies
+        .map(mapAnomalyToCondition)
+        .filter((x): x is string => !!x)
+    )
+  );
+
+  const actions = Array.from(
+    new Set(
+      input.instabilities.flatMap(mapInstabilityToAction)
+    )
+  );
+
+  return {
+    id: template.hd.auto.${name},
+    label: Auto High-D Playbook: ${name},
+    description: `Auto-synthesized playbook for anomalies ${input.anomalies.join(
+      ", "
+    )} and instabilities ${input.instabilities.join(", ")}.`,
+    conditions,
+    actions,
+  };
+}
+
+function main() {
+  const input: SynthInput = {
+    anomalies: [
+      "anomaly.hd.curvature_spike",
+      "anomaly.hd.gradient_blowup",
+      "anomaly.hd.anisotropy_fracture",
+    ],
+    instabilities: ["curvaturebifurcation", "gradientblowup", "anisotropy_fracture"],
+  };
+
+  const tpl = synthesizePlaybook("curvaturegradientfracture", input);
+  const out = path.resolve(
+    dirname,
+    "../../plugins/highdplaybookpack/autocurvaturegradient_fracture.json"
+  );
+  fs.writeFileSync(out, JSON.stringify(tpl, null, 2));
+  console.log("Wrote", out);
+}
+
+main();
+`
+
+---
+
+4 — High‑D Anomaly Explainer (LLM‑driven shell)
+
+Goal: wrap anomaly + stability + consistency into a human‑readable explanation object that an LLM (or your own narrative layer) can turn into text.
+
+Folder: src/explain/highdanomalyexplainer.ts
+
+`ts
+// src/explain/highdanomalyexplainer.ts
+
+import { HighDStabilityEvent } from "../../plugins/highdstabilitydetector";
+import { HighDConsistencyIssue } from "../../plugins/highdconsistencychecker";
+
+export interface HighDExplanation {
+  timestamp: string;
+  summary: string;
+  anomalies: string[];
+  instabilities: string[];
+  consistencyIssues: string[];
+  suggestedPlaybooks: string[];
+}
+
+export class HighDAnomalyExplainer {
+  buildExplanation(
+    timestamp: string,
+    anomalyIds: string[],
+    stabilityEvents: HighDStabilityEvent[],
+    consistencyIssues: HighDConsistencyIssue[]
+  ): HighDExplanation {
+    const instabilities = stabilityEvents.map((e) => e.type);
+    const issues = consistencyIssues.map((i) => i.message);
+
+    const suggestedPlaybooks: string[] = [];
+
+    if (anomalyIds.some((a) => a.includes("curvature"))) {
+      suggestedPlaybooks.push("template.hd.stabilize_structure");
+    }
+    if (anomalyIds.some((a) => a.includes("flux"))) {
+      suggestedPlaybooks.push("template.hd.moderate_flux");
+    }
+    if (anomalyIds.some((a) => a.includes("coupling"))) {
+      suggestedPlaybooks.push("template.hd.coupling_mitigation");
+    }
+    if (anomalyIds.some((a) => a.includes("asymmetry"))) {
+      suggestedPlaybooks.push("template.hd.asymmetry_correction");
+    }
+
+    const summaryParts: string[] = [];
+
+    if (anomalyIds.length) {
+      summaryParts.push(
+        Detected high-D anomalies: ${anomalyIds.join(", ")}.
+      );
+    }
+    if (instabilities.length) {
+      summaryParts.push(
+        Stability events indicate: ${instabilities.join(", ")}.
+      );
+    }
+    if (issues.length) {
+      summaryParts.push(
+        Consistency issues: ${issues.join(" | ")}.
+      );
+    }
+    if (suggestedPlaybooks.length) {
+      summaryParts.push(
+        Suggested playbooks: ${suggestedPlaybooks.join(", ")}.
+      );
+    }
+
+    return {
+      timestamp,
+      summary: summaryParts.join(" "),
+      anomalies: anomalyIds,
+      instabilities,
+      consistencyIssues: issues,
+      suggestedPlaybooks,
+    };
+  }
+}
+`
+
+You can then feed HighDExplanation.summary (plus the structured fields) into any narrative layer you like.
+
+If you want, next step could be: a single “highdallin_one.md” spec or a minimal working repo skeleton you can paste directly into a new project.
