@@ -1,0 +1,341 @@
+1. Overview
+
+High‑D → 3D Collapse Pack converts 5D–10D coordinates and tensors into 3D‑interpretable scalar composites, feeding directly into your existing composite packs and capability libraries.
+
+- Namespace: highdcollapsepack
+- Location: plugins/highdcollapsepack/
+
+---
+
+2. File: plugins/highdcollapsepack/schema.json
+
+`json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "High-D to 3D Collapse Schema",
+  "type": "object",
+  "properties": {
+    "dimensionGroups": {
+      "type": "object",
+      "description": "Logical groupings of high-dimensional coordinates.",
+      "properties": {
+        "base4": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "First 4D group, e.g. [x, y, z, w]."
+        },
+        "rel3A": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "First relational 3D group, e.g. [v, u, q]."
+        },
+        "rel3B": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Second relational 3D group, e.g. [p, s, f]."
+        }
+      },
+      "required": ["base4"]
+    },
+    "collapseRules": {
+      "type": "object",
+      "properties": {
+        "r4": {
+          "type": "string",
+          "description": "Measurement id for 4D radius."
+        },
+        "rel3A_mag": {
+          "type": "string",
+          "description": "Measurement id for relational 3D magnitude A."
+        },
+        "rel3B_mag": {
+          "type": "string",
+          "description": "Measurement id for relational 3D magnitude B."
+        },
+        "grad_norm": {
+          "type": "string",
+          "description": "Measurement id for high-D gradient norm."
+        },
+        "flux_norm": {
+          "type": "string",
+          "description": "Measurement id for high-D flux norm."
+        },
+        "tensor_norm": {
+          "type": "string",
+          "description": "Measurement id for high-D tensor norm."
+        }
+      },
+      "required": ["r4"]
+    },
+    "normalization": {
+      "type": "object",
+      "description": "Optional normalization scales.",
+      "properties": {
+        "r4_scale": { "type": "number" },
+        "rel3A_scale": { "type": "number" },
+        "rel3B_scale": { "type": "number" },
+        "grad_scale": { "type": "number" },
+        "flux_scale": { "type": "number" },
+        "tensor_scale": { "type": "number" }
+      }
+    }
+  },
+  "required": ["dimensionGroups", "collapseRules"]
+}
+`
+
+---
+
+3. File: plugins/highdcollapsepack/operators.ts
+
+`ts
+// plugins/highdcollapsepack/operators.ts
+
+/
+ * Generic L2 norm of a vector.
+ */
+export function l2Norm(values: number[]): number {
+  let sum = 0;
+  for (const v of values) sum += v * v;
+  return Math.sqrt(sum);
+}
+
+/
+ * L2 norm of a flattened tensor.
+ */
+export function tensorNorm(flat: number[]): number {
+  return l2Norm(flat);
+}
+
+/
+ * Optional normalization helper.
+ */
+export function normalize(value: number, scale?: number): number {
+  if (!scale || scale === 0) return value;
+  return value / scale;
+}
+`
+
+---
+
+4. File: plugins/highdcollapsepack/index.ts
+
+`ts
+// plugins/highdcollapsepack/index.ts
+
+import {
+  Measurement,
+  MeasurementPlugin,
+} from "../../src/core/types";
+import { l2Norm, tensorNorm, normalize } from "./operators";
+
+interface HighDCollapseConfig {
+  dimensionGroups: {
+    base4: string[];   // e.g. ["coord.x", "coord.y", "coord.z", "coord.w"]
+    rel3A?: string[];  // e.g. ["coord.v", "coord.u", "coord.q"]
+    rel3B?: string[];  // e.g. ["coord.p", "coord.s", "coord.f"]
+  };
+  collapseRules: {
+    r4: string;
+    rel3A_mag?: string;
+    rel3B_mag?: string;
+    grad_norm?: string;
+    flux_norm?: string;
+    tensor_norm?: string;
+  };
+  normalization?: {
+    r4_scale?: number;
+    rel3A_scale?: number;
+    rel3B_scale?: number;
+    grad_scale?: number;
+    flux_scale?: number;
+    tensor_scale?: number;
+  };
+}
+
+/
+ * Helper to read a scalar measurement.
+ */
+function m(measurements: Record<string, unknown>, id: string): number {
+  const v = measurements[id];
+  if (typeof v !== "number") {
+    throw new Error(Expected measurement "${id}");
+  }
+  return v;
+}
+
+/
+ * Helper to read a vector measurement (array of numbers).
+ */
+function mv(measurements: Record<string, unknown>, id: string): number[] {
+  const v = measurements[id];
+  if (!Array.isArray(v)) {
+    throw new Error(Expected vector measurement "${id}");
+  }
+  return v.map((x) => {
+    if (typeof x !== "number") {
+      throw new Error(Expected numeric component in "${id}");
+    }
+    return x;
+  });
+}
+
+/
+ * Build high-D collapse measurements from a config.
+ */
+export function buildHighDCollapseMeasurements(
+  config: HighDCollapseConfig
+): Measurement[] {
+  const { dimensionGroups, collapseRules, normalization } = config;
+
+  const measurements: Measurement[] = [];
+
+  // 1. 4D radius: base4 -> r4
+  measurements.push({
+    id: collapseRules.r4,
+    label: "4D Radius",
+    description: "L2 norm of the base 4D coordinate group.",
+    dependencies: dimensionGroups.base4,
+    evaluate: (meas) => {
+      const vals = dimensionGroups.base4.map((id) => m(meas, id));
+      const r4 = l2Norm(vals);
+      return normalize(r4, normalization?.r4_scale);
+    },
+  });
+
+  // 2. Relational 3D magnitude A
+  if (dimensionGroups.rel3A && collapseRules.rel3A_mag) {
+    measurements.push({
+      id: collapseRules.rel3A_mag,
+      label: "Relational 3D Magnitude A",
+      description: "L2 norm of the first relational 3D group.",
+      dependencies: dimensionGroups.rel3A,
+      evaluate: (meas) => {
+        const vals = dimensionGroups.rel3A!.map((id) => m(meas, id));
+        const mag = l2Norm(vals);
+        return normalize(mag, normalization?.rel3A_scale);
+      },
+    });
+  }
+
+  // 3. Relational 3D magnitude B
+  if (dimensionGroups.rel3B && collapseRules.rel3B_mag) {
+    measurements.push({
+      id: collapseRules.rel3B_mag,
+      label: "Relational 3D Magnitude B",
+      description: "L2 norm of the second relational 3D group.",
+      dependencies: dimensionGroups.rel3B,
+      evaluate: (meas) => {
+        const vals = dimensionGroups.rel3B!.map((id) => m(meas, id));
+        const mag = l2Norm(vals);
+        return normalize(mag, normalization?.rel3B_scale);
+      },
+    });
+  }
+
+  // 4. High-D gradient norm (expects a vector measurement)
+  if (collapseRules.grad_norm) {
+    measurements.push({
+      id: collapseRules.grad_norm,
+      label: "High-D Gradient Norm",
+      description: "L2 norm of a high-dimensional gradient vector.",
+      dependencies: ["hd.grad_vector"],
+      evaluate: (meas) => {
+        const grad = mv(meas, "hd.grad_vector");
+        const g = l2Norm(grad);
+        return normalize(g, normalization?.grad_scale);
+      },
+    });
+  }
+
+  // 5. High-D flux norm (expects a vector measurement)
+  if (collapseRules.flux_norm) {
+    measurements.push({
+      id: collapseRules.flux_norm,
+      label: "High-D Flux Norm",
+      description: "L2 norm of a high-dimensional flux vector.",
+      dependencies: ["hd.flux_vector"],
+      evaluate: (meas) => {
+        const flux = mv(meas, "hd.flux_vector");
+        const f = l2Norm(flux);
+        return normalize(f, normalization?.flux_scale);
+      },
+    });
+  }
+
+  // 6. High-D tensor norm (expects a flattened tensor vector)
+  if (collapseRules.tensor_norm) {
+    measurements.push({
+      id: collapseRules.tensor_norm,
+      label: "High-D Tensor Norm",
+      description: "L2 norm of a flattened high-dimensional tensor.",
+      dependencies: ["hd.tensor_flat"],
+      evaluate: (meas) => {
+        const flat = mv(meas, "hd.tensor_flat");
+        const t = tensorNorm(flat);
+        return normalize(t, normalization?.tensor_scale);
+      },
+    });
+  }
+
+  return measurements;
+}
+
+/
+ * Default plugin instance with a canonical config.
+ * You can also build custom instances by calling buildHighDCollapseMeasurements
+ * with your own config and registering them in the measurement registry.
+ */
+const defaultConfig: HighDCollapseConfig = {
+  dimensionGroups: {
+    base4: ["coord.x", "coord.y", "coord.z", "coord.w"],
+    rel3A: ["coord.v", "coord.u", "coord.q"],
+    rel3B: ["coord.p", "coord.s", "coord.f"],
+  },
+  collapseRules: {
+    r4: "hd.r4",
+    rel3Amag: "hd.rel3Amag",
+    rel3Bmag: "hd.rel3Bmag",
+    gradnorm: "hd.gradnorm",
+    fluxnorm: "hd.fluxnorm",
+    tensornorm: "hd.tensornorm",
+  },
+  normalization: {
+    r4_scale: 1.0,
+    rel3A_scale: 1.0,
+    rel3B_scale: 1.0,
+    grad_scale: 1.0,
+    flux_scale: 1.0,
+    tensor_scale: 1.0,
+  },
+};
+
+export const HighDCollapsePlugin: MeasurementPlugin = {
+  namespace: "highdcollapsepack",
+  measurements: buildHighDCollapseMeasurements(defaultConfig),
+};
+`
+
+---
+
+5. Checklist Status
+
+From the earlier list:
+
+- 1. High‑D → 3D Collapse Pack ✅ (now implemented)
+- 2. High‑D Capability Extensions ☐  
+- 3. High‑D Regime Extensions ☐  
+- 4. High‑D Anomaly Types ☐  
+- 5. High‑D Overlay Extensions ☐  
+- 6. High‑D Playbook Extensions ☐  
+- 7. High‑D Signature Export Pack ☐  
+- 8. High‑D Consistency Checker ☐  
+- 9. High‑D Stability Detector ☐  
+- 10. High‑D Visualization Primitives ☐  
+
+If you want to go strictly in order, next is:
+
+> 2. High‑D Capability Extensions  
+> capabilities like cap.hd.strongcurvature, cap.hd.strongflux, cap.hd.strongcoupling, built on hd.r4, hd.gradnorm, hd.fluxnorm, hd.tensornorm.
+
+Say “Produce High‑D Capability Extensions” and I’ll generate that pack next.
