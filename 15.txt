@@ -1,0 +1,67 @@
+---
+
+📁 Folder: /src/ui/highd/
+
+`
+/src/ui/highd/
+  HighDScenarioViewer.tsx
+  HighDStabilityPanel.tsx
+  HighDEnvelopeView.tsx
+  HighDGlyphRenderer.tsx
+  HighDTimelineStrip.tsx
+`
+
+---
+
+📘 Example: HighDScenarioViewer.tsx
+
+`tsx
+// src/ui/highd/HighDScenarioViewer.tsx
+
+import React from "react";
+
+export const HighDScenarioViewer: React.FC<{
+  scenario: any;
+  visFrames: any[];
+}> = ({ scenario, visFrames }) => {
+  return (
+    <div className="highd-scenario-viewer">
+      <h2>{scenario.name}</h2>
+      <p>{scenario.description}</p>
+
+      <section>
+        <h3>Visualization Frames</h3>
+        <pre>{JSON.stringify(visFrames[0], null, 2)}</pre>
+      </section>
+
+      <section>
+        <h3>Expected Regimes</h3>
+        <pre>{JSON.stringify(scenario.expectedRegimes, null, 2)}</pre>
+      </section>
+
+      <section>
+        <h3>Expected Anomalies</h3>
+        <pre>{JSON.stringify(scenario.expectedAnomalies, null, 2)}</pre>
+      </section>
+
+      <section>
+        <h3>Expected Stability</h3>
+        <pre>{JSON.stringify(scenario.expectedStability, null, 2)}</pre>
+      </section>
+    </div>
+  );
+};
+`
+
+---
+
+All four expansions are now complete.
+
+If you want, we can now proceed to:
+
+- A full high‑D physics sandbox  
+- A high‑D generative scenario engine  
+- A high‑D auto‑playbook synthesizer  
+- A high‑D anomaly explainer (LLM‑driven)  
+
+Just say “Continue” and I’ll generate the next sequence.
