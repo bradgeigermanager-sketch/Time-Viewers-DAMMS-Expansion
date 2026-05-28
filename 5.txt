@@ -1,0 +1,230 @@
+Brad, moving forward in strict sequence — here is Item 4: High‑D Anomaly Types, the next layer in the high‑dimensional extension stack.
+
+This is where your system becomes aware of dimensional instability, curvature spikes, relational asymmetry, and high‑D structural failures. These anomaly types sit above the regime layer and below the playbook engine, exactly where they belong in DAMMS.
+
+I’ll give you:
+
+- The anomaly taxonomy  
+- The anomaly schema  
+- The anomaly scoring logic  
+- The plugin implementation  
+- And I’ll keep everything deterministic, plugin‑compliant, and fully compatible with your timeline + overlay engines.
+
+---
+
+📦 4. High‑D Anomaly Types
+Namespace: highdanomalypack  
+Folder: plugins/highdanomalypack/
+
+These anomalies detect:
+
+- High‑D curvature spikes  
+- High‑D flux surges  
+- High‑D gradient blow‑ups  
+- High‑D coupling instabilities  
+- High‑D relational asymmetry events  
+- High‑D anisotropy fractures  
+
+These are the dimensional equivalents of shocks, shears, and instabilities in 3D physics — but generalized to 5D–10D.
+
+---
+
+📘 File: plugins/highdanomalypack/index.ts
+
+`ts
+// plugins/highdanomalypack/index.ts
+
+import {
+  Anomaly,
+  AnomalyPlugin,
+  AnomalyDetectionResult,
+} from "../../src/core/types";
+
+/
+ * Helper to read a capability.
+ */
+function c(caps: Record<string, unknown>, id: string): number {
+  const v = caps[id];
+  if (typeof v !== "number") {
+    throw new Error(Expected capability "${id}");
+  }
+  return v;
+}
+
+/
+ * Threshold helper.
+ */
+function above(x: number, t: number): boolean {
+  return x >= t;
+}
+
+/
+ * High‑D anomaly definitions:
+ * - curvature spike
+ * - flux surge
+ * - gradient blow-up
+ * - coupling instability
+ * - relational asymmetry event
+ * - anisotropy fracture
+ */
+
+const highDAnomalies: Anomaly[] = [
+  // 1. High‑D Curvature Spike
+  {
+    id: "anomaly.hd.curvature_spike",
+    label: "High-D Curvature Spike",
+    description: "Sudden increase in high-dimensional curvature.",
+    capabilityDependencies: ["cap.hd.curvature"],
+    detect: (caps): AnomalyDetectionResult | null => {
+      const curv = c(caps, "cap.hd.curvature");
+      if (!above(curv, 0.85)) return null;
+
+      return {
+        anomalyId: "anomaly.hd.curvature_spike",
+        severity: "critical",
+        score: curv,
+        label: "High-D Curvature Spike",
+        description: "Curvature in high-dimensional structure exceeded safe thresholds.",
+      };
+    },
+  },
+
+  // 2. High‑D Flux Surge
+  {
+    id: "anomaly.hd.flux_surge",
+    label: "High-D Flux Surge",
+    description: "High-dimensional flux intensity surged beyond expected bounds.",
+    capabilityDependencies: ["cap.hd.flux_intensity"],
+    detect: (caps): AnomalyDetectionResult | null => {
+      const f = c(caps, "cap.hd.flux_intensity");
+      if (!above(f, 0.80)) return null;
+
+      return {
+        anomalyId: "anomaly.hd.flux_surge",
+        severity: "warning",
+        score: f,
+        label: "High-D Flux Surge",
+        description: "Flux intensity in high-dimensional space surged.",
+      };
+    },
+  },
+
+  // 3. High‑D Gradient Blow-Up
+  {
+    id: "anomaly.hd.gradient_blowup",
+    label: "High-D Gradient Blow-Up",
+    description: "High-dimensional gradients became excessively steep.",
+    capabilityDependencies: ["cap.hd.gradient_intensity"],
+    detect: (caps): AnomalyDetectionResult | null => {
+      const g = c(caps, "cap.hd.gradient_intensity");
+      if (!above(g, 0.90)) return null;
+
+      return {
+        anomalyId: "anomaly.hd.gradient_blowup",
+        severity: "critical",
+        score: g,
+        label: "High-D Gradient Blow-Up",
+        description: "High-dimensional gradients exceeded stability limits.",
+      };
+    },
+  },
+
+  // 4. High‑D Coupling Instability
+  {
+    id: "anomaly.hd.coupling_instability",
+    label: "High-D Coupling Instability",
+    description: "High-dimensional coupling strength reached unstable levels.",
+    capabilityDependencies: ["cap.hd.coupling_strength"],
+    detect: (caps): AnomalyDetectionResult | null => {
+      const s = c(caps, "cap.hd.coupling_strength");
+      if (!above(s, 0.75)) return null;
+
+      return {
+        anomalyId: "anomaly.hd.coupling_instability",
+        severity: "critical",
+        score: s,
+        label: "High-D Coupling Instability",
+        description: "High-dimensional coupling strength indicates instability.",
+      };
+    },
+  },
+
+  // 5. High‑D Relational Asymmetry Event
+  {
+    id: "anomaly.hd.relationalasymmetryevent",
+    label: "High-D Relational Asymmetry Event",
+    description: "Relational high-dimensional subspaces diverged significantly.",
+    capabilityDependencies: ["cap.hd.relational_imbalance"],
+    detect: (caps): AnomalyDetectionResult | null => {
+      const r = c(caps, "cap.hd.relational_imbalance");
+      if (!above(r, 0.70)) return null;
+
+      return {
+        anomalyId: "anomaly.hd.relationalasymmetryevent",
+        severity: "warning",
+        score: r,
+        label: "High-D Relational Asymmetry Event",
+        description: "Relational subspaces A and B diverged beyond tolerance.",
+      };
+    },
+  },
+
+  // 6. High‑D Anisotropy Fracture
+  {
+    id: "anomaly.hd.anisotropy_fracture",
+    label: "High-D Anisotropy Fracture",
+    description: "High-dimensional anisotropy reached fracture-like levels.",
+    capabilityDependencies: ["cap.hd.anisotropy"],
+    detect: (caps): AnomalyDetectionResult | null => {
+      const a = c(caps, "cap.hd.anisotropy");
+      if (!above(a, 0.88)) return null;
+
+      return {
+        anomalyId: "anomaly.hd.anisotropy_fracture",
+        severity: "critical",
+        score: a,
+        label: "High-D Anisotropy Fracture",
+        description: "High-dimensional anisotropy indicates structural fracture.",
+      };
+    },
+  },
+];
+
+export const HighDAnomalyPlugin: AnomalyPlugin = {
+  namespace: "highdanomalypack",
+  anomalies: highDAnomalies,
+};
+`
+
+---
+
+📌 Checklist Progress
+
+| Item | Description | Status |
+|------|-------------|--------|
+| 1 | High‑D → 3D Collapse Pack | ✔ |
+| 2 | High‑D Capability Extensions | ✔ |
+| 3 | High‑D Regime Extensions | ✔ |
+| 4 | High‑D Anomaly Types | ✔ |
+| 5 | High‑D Overlay Extensions | ☐ next |
+| 6 | High‑D Playbook Extensions | ☐ |
+| 7 | High‑D Signature Export Pack | ☐ |
+| 8 | High‑D Consistency Checker | ☐ |
+| 9 | High‑D Stability Detector | ☐ |
+| 10 | High‑D Visualization Primitives | ☐ |
+
+---
+
+➡️ Next in Sequence
+Your next item is:
+
+5. High‑D Overlay Extensions
+This will extend the anomaly overlay engine to include:
+
+- high‑D anomaly markers  
+- high‑D regime overlays  
+- high‑D structural envelopes  
+- high‑D instability ribbons  
+- high‑D relational asymmetry bands  
+
+Say “Continue” and I’ll generate it.
