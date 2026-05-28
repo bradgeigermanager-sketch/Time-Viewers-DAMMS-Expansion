@@ -1,0 +1,269 @@
+Brad — continuing the sequence with Item 7: High‑D Signature Export Pack, the layer that lets your entire high‑dimensional physics intelligence engine emit stable, portable, schema‑driven signatures for:
+
+- high‑D capabilities  
+- high‑D regimes  
+- high‑D anomalies  
+- high‑D structural envelopes  
+- high‑D relational asymmetry  
+- high‑D anisotropy  
+- high‑D collapse metrics  
+
+This is the pack that makes your system interoperable, auditable, versionable, and export‑ready across:
+
+- dashboards  
+- external systems  
+- ML pipelines  
+- simulation engines  
+- archival systems  
+
+It is the “serialization layer” for the high‑D subsystem.
+
+---
+
+⭐ 7. High‑D Signature Export Pack
+Namespace: highdsignatureexport_pack  
+Folder: plugins/highdsignatureexport_pack/
+
+This pack produces signature objects that unify:
+
+- collapse metrics  
+- capability vectors  
+- regime fingerprints  
+- anomaly fingerprints  
+- structural envelopes  
+
+into a single exportable structure.
+
+---
+
+📘 File: plugins/highdsignatureexport_pack/schema.json
+
+`json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "High-D Signature Export Schema",
+  "type": "object",
+  "properties": {
+    "timestamp": { "type": "string" },
+    "stateId": { "type": "string" },
+
+    "collapse": {
+      "type": "object",
+      "properties": {
+        "r4": { "type": "number" },
+        "rel3A_mag": { "type": "number" },
+        "rel3B_mag": { "type": "number" },
+        "grad_norm": { "type": "number" },
+        "flux_norm": { "type": "number" },
+        "tensor_norm": { "type": "number" }
+      }
+    },
+
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": { "type": "number" }
+    },
+
+    "regimes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "regimeId": { "type": "string" },
+          "label": { "type": "string" },
+          "confidence": { "type": "number" }
+        }
+      }
+    },
+
+    "anomalies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "anomalyId": { "type": "string" },
+          "label": { "type": "string" },
+          "severity": { "type": "string" },
+          "score": { "type": "number" }
+        }
+      }
+    },
+
+    "structuralEnvelope": {
+      "type": "object",
+      "properties": {
+        "dominantRegime": { "type": "string" },
+        "confidence": { "type": "number" }
+      }
+    }
+  },
+  "required": ["timestamp", "collapse", "capabilities"]
+}
+`
+
+---
+
+📦 File: plugins/highdsignatureexport_pack/index.ts
+
+`ts
+// plugins/highdsignatureexport_pack/index.ts
+
+import {
+  RegimeTimelineEntry,
+  RegimeTimeline,
+} from "../../src/runtime/regimetimelineengine";
+
+import {
+  AnomalyEvent,
+} from "../../src/runtime/anomalyoverlayengine";
+
+import {
+  RegimeExplanation,
+} from "../../src/core/types";
+
+export interface HighDSignature {
+  timestamp: string;
+  stateId?: string;
+
+  collapse: {
+    r4?: number;
+    rel3A_mag?: number;
+    rel3B_mag?: number;
+    grad_norm?: number;
+    flux_norm?: number;
+    tensor_norm?: number;
+  };
+
+  capabilities: Record<string, number>;
+
+  regimes: Array<{
+    regimeId: string;
+    label: string;
+    confidence: number;
+  }>;
+
+  anomalies: Array<{
+    anomalyId: string;
+    label: string;
+    severity: string;
+    score: number;
+  }>;
+
+  structuralEnvelope?: {
+    dominantRegime: string;
+    confidence: number;
+  };
+}
+
+export class HighDSignatureExportEngine {
+  /
+   * Build a high‑D signature for a single timestamp.
+   */
+  buildSignature(
+    entry: RegimeTimelineEntry,
+    capabilities: Record<string, number>,
+    anomalies: AnomalyEvent[],
+    explanation?: RegimeExplanation
+  ): HighDSignature {
+    const collapse = {
+      r4: capabilities["hd.r4"],
+      rel3Amag: capabilities["hd.rel3Amag"],
+      rel3Bmag: capabilities["hd.rel3Bmag"],
+      gradnorm: capabilities["hd.gradnorm"],
+      fluxnorm: capabilities["hd.fluxnorm"],
+      tensornorm: capabilities["hd.tensornorm"],
+    };
+
+    const regimes = entry.regimes
+      .filter((r) => r.regimeId.startsWith("regime.hd."))
+      .map((r) => ({
+        regimeId: r.regimeId,
+        label: r.label,
+        confidence: r.confidence,
+      }));
+
+    const anomalyList = anomalies
+      .filter((a) => a.id.startsWith("anomaly.hd."))
+      .map((a) => ({
+        anomalyId: a.id,
+        label: a.label,
+        severity: a.severity,
+        score: a.meta?.score ?? 1,
+      }));
+
+    const structuralEnvelope = explanation
+      ? {
+          dominantRegime: explanation.dominantRegime,
+          confidence: explanation.confidence,
+        }
+      : undefined;
+
+    return {
+      timestamp: entry.timestamp,
+      stateId: entry.stateId,
+      collapse,
+      capabilities,
+      regimes,
+      anomalies: anomalyList,
+      structuralEnvelope,
+    };
+  }
+
+  /
+   * Build signatures for an entire timeline.
+   */
+  buildTimelineSignatures(
+    timeline: RegimeTimeline,
+    allCapabilities: Record<string, Record<string, number>>,
+    allAnomalies: Record<string, AnomalyEvent[]>
+  ): HighDSignature[] {
+    const signatures: HighDSignature[] = [];
+
+    for (const entry of timeline.entries) {
+      const caps = allCapabilities[entry.timestamp] ?? {};
+      const anoms = allAnomalies[entry.timestamp] ?? [];
+      const exp = timeline.explanations[entry.timestamp];
+
+      signatures.push(
+        this.buildSignature(entry, caps, anoms, exp)
+      );
+    }
+
+    return signatures;
+  }
+}
+`
+
+---
+
+📌 Checklist Progress
+
+| Item | Description | Status |
+|------|-------------|--------|
+| 1 | High‑D → 3D Collapse Pack | ✔ |
+| 2 | High‑D Capability Extensions | ✔ |
+| 3 | High‑D Regime Extensions | ✔ |
+| 4 | High‑D Anomaly Types | ✔ |
+| 5 | High‑D Overlay Extensions | ✔ |
+| 6 | High‑D Playbook Extensions | ✔ |
+| 7 | High‑D Signature Export Pack | ✔ |
+| 8 | High‑D Consistency Checker | ☐ next |
+| 9 | High‑D Stability Detector | ☐ |
+| 10 | High‑D Visualization Primitives | ☐ |
+
+---
+
+⭐ Next in Sequence
+
+8. High‑D Consistency Checker
+This subsystem will verify:
+
+- collapse consistency  
+- capability vector consistency  
+- regime coherence  
+- anomaly coherence  
+- structural envelope consistency  
+- high‑D relational consistency  
+- high‑D anisotropy consistency  
+
+Say “Continue” and I’ll generate it.
