@@ -1,0 +1,238 @@
+1 — End‑to‑end example dataset
+
+Folder: examples/highd_demo/
+
+`jsonc
+// examples/highd_demo/timeline.json
+{
+  "entries": [
+    {
+      "timestamp": "t0",
+      "stateId": "s0",
+      "regimes": [],
+      "meta": {}
+    },
+    {
+      "timestamp": "t1",
+      "stateId": "s1",
+      "regimes": [],
+      "meta": {}
+    },
+    {
+      "timestamp": "t2",
+      "stateId": "s2",
+      "regimes": [],
+      "meta": {}
+    }
+  ]
+}
+`
+
+`jsonc
+// examples/highd_demo/capabilities.json
+{
+  "t0": {
+    "hd.r4": 0.3,
+    "hd.rel3A_mag": 0.1,
+    "hd.rel3B_mag": 0.1,
+    "hd.grad_norm": 0.2,
+    "hd.flux_norm": 0.1,
+    "hd.tensor_norm": 0.15,
+    "cap.hd.curvature": 0.2,
+    "cap.hd.flux_intensity": 0.2,
+    "cap.hd.gradient_intensity": 0.2,
+    "cap.hd.coupling_strength": 0.1,
+    "cap.hd.relational_imbalance": 0.1,
+    "cap.hd.anisotropy": 0.1
+  },
+  "t1": {
+    "hd.r4": 0.9,
+    "hd.rel3A_mag": 0.7,
+    "hd.rel3B_mag": 0.2,
+    "hd.grad_norm": 0.95,
+    "hd.flux_norm": 0.85,
+    "hd.tensor_norm": 0.9,
+    "cap.hd.curvature": 0.9,
+    "cap.hd.flux_intensity": 0.85,
+    "cap.hd.gradient_intensity": 0.95,
+    "cap.hd.coupling_strength": 0.8,
+    "cap.hd.relational_imbalance": 0.8,
+    "cap.hd.anisotropy": 0.9
+  },
+  "t2": {
+    "hd.r4": 0.6,
+    "hd.rel3A_mag": 0.4,
+    "hd.rel3B_mag": 0.3,
+    "hd.grad_norm": 0.5,
+    "hd.flux_norm": 0.4,
+    "hd.tensor_norm": 0.45,
+    "cap.hd.curvature": 0.5,
+    "cap.hd.flux_intensity": 0.5,
+    "cap.hd.gradient_intensity": 0.5,
+    "cap.hd.coupling_strength": 0.4,
+    "cap.hd.relational_imbalance": 0.3,
+    "cap.hd.anisotropy": 0.4
+  }
+}
+`
+
+`jsonc
+// examples/highd_demo/anomalies.json
+{
+  "t0": [],
+  "t1": [
+    {
+      "id": "anomaly.hd.curvature_spike",
+      "timestamp": "t1",
+      "label": "High-D Curvature Spike",
+      "severity": "critical",
+      "meta": { "score": 0.9 }
+    },
+    {
+      "id": "anomaly.hd.gradient_blowup",
+      "timestamp": "t1",
+      "label": "High-D Gradient Blow-Up",
+      "severity": "critical",
+      "meta": { "score": 0.95 }
+    }
+  ],
+  "t2": []
+}
+`
+
+---
+
+2 — Simulation harness
+
+Folder: tools/sim/highdsimharness.ts
+
+`ts
+// tools/sim/highdsimharness.ts
+
+import { HighDConsoleIntegration } from "../../src/integration/highdconsoleintegration";
+import timelineData from "../../examples/highd_demo/timeline.json";
+import capsData from "../../examples/highd_demo/capabilities.json";
+import anomsData from "../../examples/highd_demo/anomalies.json";
+
+async function run() {
+  const engine = new HighDConsoleIntegration();
+  engine.registerAll();
+
+  const timeline = {
+    entries: timelineData.entries,
+    explanations: {}
+  };
+
+  const result = engine.buildAll(timeline, capsData, anomsData);
+
+  console.log("Overlays:", JSON.stringify(result.overlays, null, 2));
+  console.log("Stability:", JSON.stringify(result.stability, null, 2));
+  console.log("Consistency:", JSON.stringify(result.consistency, null, 2));
+  console.log("Signatures:", JSON.stringify(result.signatures.slice(0, 2), null, 2));
+}
+
+run().catch(console.error);
+`
+
+---
+
+3 — UI mockup (React console view)
+
+Folder: src/ui/HighDConsoleView.tsx
+
+`tsx
+// src/ui/HighDConsoleView.tsx
+
+import React from "react";
+
+export const HighDConsoleView: React.FC<{
+  overlays: any;
+  stability: any;
+  consistency: any;
+  visFrames: any[];
+}> = ({ overlays, stability, consistency, visFrames }) => {
+  return (
+    <div className="highd-console">
+      <section>
+        <h2>High-D Timeline Overlays</h2>
+        <pre>{JSON.stringify(overlays.bands.slice(0, 5), null, 2)}</pre>
+      </section>
+
+      <section>
+        <h2>High-D Stability Events</h2>
+        <pre>{JSON.stringify(stability.events.slice(0, 5), null, 2)}</pre>
+      </section>
+
+      <section>
+        <h2>High-D Consistency Issues</h2>
+        <pre>{JSON.stringify(consistency.issues.slice(0, 5), null, 2)}</pre>
+      </section>
+
+      <section>
+        <h2>High-D Visualization Primitives (First Frame)</h2>
+        <pre>{JSON.stringify(visFrames[0], null, 2)}</pre>
+      </section>
+    </div>
+  );
+};
+`
+
+---
+
+4 — CLI tool
+
+Folder: tools/cli/highdconsolecli.ts
+
+`ts
+// tools/cli/highdconsolecli.ts
+
+import fs from "fs";
+import path from "path";
+import { HighDConsoleIntegration } from "../../src/integration/highdconsoleintegration";
+
+function loadJSON(p: string) {
+  return JSON.parse(fs.readFileSync(p, "utf-8"));
+}
+
+async function main() {
+  const base = path.resolve(dirname, "../../examples/highd_demo");
+
+  const timelineData = loadJSON(path.join(base, "timeline.json"));
+  const capsData = loadJSON(path.join(base, "capabilities.json"));
+  const anomsData = loadJSON(path.join(base, "anomalies.json"));
+
+  const engine = new HighDConsoleIntegration();
+  engine.registerAll();
+
+  const timeline = {
+    entries: timelineData.entries,
+    explanations: {}
+  };
+
+  const { overlays, stability, consistency } = engine.buildAll(
+    timeline,
+    capsData,
+    anomsData
+  );
+
+  console.log("=== High-D Stability Summary ===");
+  console.log(JSON.stringify(stability, null, 2));
+
+  console.log("\n=== High-D Consistency Issues ===");
+  console.log(JSON.stringify(consistency.issues, null, 2));
+
+  console.log("\n=== High-D Overlay Bands (first 10) ===");
+  console.log(JSON.stringify(overlays.bands.slice(0, 10), null, 2));
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
+`
+
+---
+
+If you want to go even deeper, we can now design:  
+- a scenario library (different high‑D failure modes), or  
+- a benchmark suite for comparing collapse strategies.
