@@ -1,0 +1,163 @@
+---
+
+File: plugins/highdcapabilitylibrary/index.ts
+
+`ts
+// plugins/highdcapabilitylibrary/index.ts
+
+import {
+  Capability,
+  CapabilityPlugin,
+} from "../../src/core/types";
+
+/
+ * Smooth logistic function for capability scoring.
+ */
+function logistic(x: number, x0: number, k: number): number {
+  return 1 / (1 + Math.exp(-k * (x - x0)));
+}
+
+/
+ * Helper to read a measurement.
+ */
+function m(measurements: Record<string, unknown>, id: string): number {
+  const v = measurements[id];
+  if (typeof v !== "number") {
+    throw new Error(Expected measurement "${id}");
+  }
+  return v;
+}
+
+/
+ * High‑D capability extensions:
+ * - curvature
+ * - flux intensity
+ * - gradient intensity
+ * - tensor coupling strength
+ * - relational imbalance (rel3A vs rel3B)
+ * - anisotropy (tensor norm vs gradient norm)
+ */
+
+const highDCaps: Capability[] = [
+  // High‑D curvature: tensor_norm / r4
+  {
+    id: "cap.hd.curvature",
+    label: "High‑D Curvature",
+    description: "Measures curvature intensity from high‑dimensional tensor structure.",
+    measurementDependencies: ["hd.tensor_norm", "hd.r4"],
+    evaluate: (meas) => {
+      const t = m(meas, "hd.tensor_norm");
+      const r4 = m(meas, "hd.r4");
+      const ratio = r4 === 0 ? 0 : t / r4;
+      return logistic(ratio, 1.0, 1.0);
+    },
+  },
+
+  // High‑D flux intensity: flux_norm
+  {
+    id: "cap.hd.flux_intensity",
+    label: "High‑D Flux Intensity",
+    description: "Measures the magnitude of high‑dimensional flux.",
+    measurementDependencies: ["hd.flux_norm"],
+    evaluate: (meas) => {
+      const f = m(meas, "hd.flux_norm");
+      return logistic(f, 1.0, 1.0);
+    },
+  },
+
+  // High‑D gradient intensity: grad_norm
+  {
+    id: "cap.hd.gradient_intensity",
+    label: "High‑D Gradient Intensity",
+    description: "Measures the magnitude of high‑dimensional gradients.",
+    measurementDependencies: ["hd.grad_norm"],
+    evaluate: (meas) => {
+      const g = m(meas, "hd.grad_norm");
+      return logistic(g, 1.0, 1.0);
+    },
+  },
+
+  // High‑D coupling strength: tensornorm * fluxnorm
+  {
+    id: "cap.hd.coupling_strength",
+    label: "High‑D Coupling Strength",
+    description: "Measures interaction strength between high‑D tensor structure and flux.",
+    measurementDependencies: ["hd.tensornorm", "hd.fluxnorm"],
+    evaluate: (meas) => {
+      const t = m(meas, "hd.tensor_norm");
+      const f = m(meas, "hd.flux_norm");
+      const coupling = t * f;
+      return logistic(coupling, 1e2, 1e-2);
+    },
+  },
+
+  // Relational imbalance: |rel3Amag - rel3Bmag|
+  {
+    id: "cap.hd.relational_imbalance",
+    label: "High‑D Relational Imbalance",
+    description: "Measures imbalance between two relational 3D subspaces.",
+    measurementDependencies: ["hd.rel3Amag", "hd.rel3Bmag"],
+    evaluate: (meas) => {
+      const a = m(meas, "hd.rel3A_mag");
+      const b = m(meas, "hd.rel3B_mag");
+      const diff = Math.abs(a - b);
+      return logistic(diff, 1.0, 1.0);
+    },
+  },
+
+  // High‑D anisotropy: tensornorm / gradnorm
+  {
+    id: "cap.hd.anisotropy",
+    label: "High‑D Anisotropy",
+    description: "Measures directional anisotropy in high‑dimensional structure.",
+    measurementDependencies: ["hd.tensornorm", "hd.gradnorm"],
+    evaluate: (meas) => {
+      const t = m(meas, "hd.tensor_norm");
+      const g = m(meas, "hd.grad_norm");
+      const ratio = g === 0 ? 0 : t / g;
+      return logistic(ratio, 1.0, 1.0);
+    },
+  },
+];
+
+export const HighDCapabilityPlugin: CapabilityPlugin = {
+  namespace: "highdcapabilitylibrary",
+  capabilities: highDCaps,
+};
+`
+
+---
+
+📌 Checklist Progress
+
+| Item | Description | Status |
+|------|-------------|--------|
+| 1 | High‑D → 3D Collapse Pack | ✔ Complete |
+| 2 | High‑D Capability Extensions | ✔ Complete |
+| 3 | High‑D Regime Extensions | ☐ Next |
+| 4 | High‑D Anomaly Types | ☐ |
+| 5 | High‑D Overlay Extensions | ☐ |
+| 6 | High‑D Playbook Extensions | ☐ |
+| 7 | High‑D Signature Export Pack | ☐ |
+| 8 | High‑D Consistency Checker | ☐ |
+| 9 | High‑D Stability Detector | ☐ |
+| 10 | High‑D Visualization Primitives | ☐ |
+
+---
+
+➡️ Next in Sequence
+The next required item is:
+
+3. High‑D Regime Extensions
+Regimes like:
+
+- High‑D Curvature‑Dominated  
+- High‑D Flux‑Dominated  
+- High‑D Gradient‑Dominated  
+- High‑D Coupling‑Dominated  
+- High‑D Relational‑Asymmetry  
+- High‑D Anisotropic Flow  
+
+Trigger it here:
+
+High‑D Regime Extensions
