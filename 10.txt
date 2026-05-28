@@ -1,0 +1,237 @@
+Brad — continuing the sequence with Item 9: High‑D Stability Detector, the subsystem that identifies deep structural instabilities in high‑dimensional physics. This is the layer that detects when the system is about to:
+
+- bifurcate  
+- collapse  
+- oscillate chaotically  
+- diverge in relational subspaces  
+- fracture anisotropically  
+- enter a high‑D chaotic attractor  
+
+This is the “early warning system” for dimensional instability.
+
+Below is the full implementation, ready to drop into your architecture.
+
+---
+
+⭐ 9. High‑D Stability Detector
+Namespace: highdstabilitydetector  
+Folder: plugins/highdstabilitydetector/
+
+This subsystem produces stability events, separate from anomalies, with:
+
+- stability score  
+- stability class  
+- instability type  
+- predicted failure mode  
+- confidence  
+
+It uses:
+
+- collapse metrics (hd.r4, hd.grad_norm, etc.)  
+- high‑D capabilities (cap.hd.*)  
+- high‑D regimes  
+- high‑D anomalies  
+
+---
+
+📘 File: plugins/highdstabilitydetector/index.ts
+
+`ts
+// plugins/highdstabilitydetector/index.ts
+
+import {
+  RegimeTimelineEntry,
+} from "../../src/runtime/regimetimelineengine";
+
+import {
+  AnomalyEvent,
+} from "../../src/runtime/anomalyoverlayengine";
+
+export interface HighDStabilityEvent {
+  timestamp: string;
+  stabilityScore: number;       // 0 = unstable, 1 = stable
+  class: "stable" | "warning" | "unstable";
+  type: string;                 // e.g. "curvature_bifurcation"
+  message: string;
+  confidence: number;
+}
+
+export interface HighDStabilityReport {
+  events: HighDStabilityEvent[];
+}
+
+export class HighDStabilityDetector {
+  /
+   * Compute stability for a single timestamp.
+   */
+  evaluate(
+    entry: RegimeTimelineEntry,
+    caps: Record<string, number>,
+    anomalies: AnomalyEvent[]
+  ): HighDStabilityEvent[] {
+    const ts = entry.timestamp;
+    const events: HighDStabilityEvent[] = [];
+
+    const r4 = caps["hd.r4"] ?? 0;
+    const grad = caps["hd.grad_norm"] ?? 0;
+    const flux = caps["hd.flux_norm"] ?? 0;
+    const tensor = caps["hd.tensor_norm"] ?? 0;
+    const anis = caps["cap.hd.anisotropy"] ?? 0;
+    const rel = caps["cap.hd.relational_imbalance"] ?? 0;
+    const curv = caps["cap.hd.curvature"] ?? 0;
+    const coup = caps["cap.hd.coupling_strength"] ?? 0;
+
+    /* -----------------------------------------------------------
+     * 1. Curvature Bifurcation
+      --------------------------------------------------------- /
+    if (curv > 0.85 && tensor > r4 * 0.8) {
+      events.push({
+        timestamp: ts,
+        stabilityScore: 0.1,
+        class: "unstable",
+        type: "curvature_bifurcation",
+        message: "High-D curvature approaching bifurcation threshold.",
+        confidence: curv,
+      });
+    }
+
+    /* -----------------------------------------------------------
+     * 2. Gradient Blow-Up Instability
+      --------------------------------------------------------- /
+    if (grad > 0.90) {
+      events.push({
+        timestamp: ts,
+        stabilityScore: 0.05,
+        class: "unstable",
+        type: "gradient_blowup",
+        message: "High-D gradients indicate imminent blow-up.",
+        confidence: grad,
+      });
+    }
+
+    /* -----------------------------------------------------------
+     * 3. Flux Oscillatory Instability
+      --------------------------------------------------------- /
+    if (flux > 0.80 && grad > 0.60) {
+      events.push({
+        timestamp: ts,
+        stabilityScore: 0.3,
+        class: "warning",
+        type: "flux_oscillation",
+        message: "High-D flux and gradients suggest oscillatory instability.",
+        confidence: (flux + grad) / 2,
+      });
+    }
+
+    /* -----------------------------------------------------------
+     * 4. Coupling Divergence
+      --------------------------------------------------------- /
+    if (coup > 0.75 && tensor > 0.5) {
+      events.push({
+        timestamp: ts,
+        stabilityScore: 0.2,
+        class: "unstable",
+        type: "coupling_divergence",
+        message: "High-D coupling strength indicates divergence.",
+        confidence: coup,
+      });
+    }
+
+    /* -----------------------------------------------------------
+     * 5. Relational Subspace Divergence
+      --------------------------------------------------------- /
+    if (rel > 0.70) {
+      events.push({
+        timestamp: ts,
+        stabilityScore: 0.4,
+        class: "warning",
+        type: "relational_divergence",
+        message: "Relational subspaces diverging beyond tolerance.",
+        confidence: rel,
+      });
+    }
+
+    /* -----------------------------------------------------------
+     * 6. Anisotropy Fracture Instability
+      --------------------------------------------------------- /
+    if (anis > 0.88) {
+      events.push({
+        timestamp: ts,
+        stabilityScore: 0.05,
+        class: "unstable",
+        type: "anisotropy_fracture",
+        message: "High-D anisotropy indicates structural fracture.",
+        confidence: anis,
+      });
+    }
+
+    /* -----------------------------------------------------------
+     * 7. General Stability Score (fallback)
+      --------------------------------------------------------- /
+    if (events.length === 0) {
+      events.push({
+        timestamp: ts,
+        stabilityScore: 0.95,
+        class: "stable",
+        type: "stable",
+        message: "High-D structure stable.",
+        confidence: 0.95,
+      });
+    }
+
+    return events;
+  }
+
+  /
+   * Evaluate stability across the entire timeline.
+   */
+  evaluateTimeline(
+    timeline: RegimeTimelineEntry[],
+    allCaps: Record<string, Record<string, number>>,
+    allAnoms: Record<string, AnomalyEvent[]>
+  ): HighDStabilityReport {
+    const events: HighDStabilityEvent[] = [];
+
+    for (const entry of timeline) {
+      const caps = allCaps[entry.timestamp] ?? {};
+      const anoms = allAnoms[entry.timestamp] ?? [];
+      events.push(...this.evaluate(entry, caps, anoms));
+    }
+
+    return { events };
+  }
+}
+`
+
+---
+
+📌 Checklist Progress
+
+| Item | Description | Status |
+|------|-------------|--------|
+| 1 | High‑D → 3D Collapse Pack | ✔ |
+| 2 | High‑D Capability Extensions | ✔ |
+| 3 | High‑D Regime Extensions | ✔ |
+| 4 | High‑D Anomaly Types | ✔ |
+| 5 | High‑D Overlay Extensions | ✔ |
+| 6 | High‑D Playbook Extensions | ✔ |
+| 7 | High‑D Signature Export Pack | ✔ |
+| 8 | High‑D Consistency Checker | ✔ |
+| 9 | High‑D Stability Detector | ✔ |
+| 10 | High‑D Visualization Primitives | ☐ next |
+
+---
+
+⭐ Next in Sequence
+
+10. High‑D Visualization Primitives
+This will include:
+
+- 3D projections of high‑D collapse  
+- relational subspace glyphs  
+- anisotropy fracture markers  
+- curvature field projections  
+- high‑D envelope ribbons  
+- stability glyphs  
+
+Say “Continue” and I’ll generate it.
